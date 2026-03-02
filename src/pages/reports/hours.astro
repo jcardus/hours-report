@@ -87,6 +87,8 @@
     }
 
     .btn-export:hover { background: #ebfbee; }
+    .btn-export--pdf { border-color: #e03131; color: #e03131; }
+    .btn-export--pdf:hover { background: #fff5f5; }
 
     table { width: 100%; border-collapse: collapse; }
 
@@ -130,7 +132,10 @@
     <div id="report" class="card">
       <div class="report-toolbar">
         <p class="report-meta" id="report-meta"></p>
-        <button class="btn-export" id="btn-export" data-i18n="export"></button>
+        <div style="display:flex;gap:0.5rem">
+          <button class="btn-export" id="btn-export" data-i18n="export"></button>
+          <button class="btn-export btn-export--pdf" id="btn-export-pdf" data-i18n="exportPdf"></button>
+        </div>
       </div>
       <table>
         <thead>
@@ -146,6 +151,8 @@
 
   <script>
     import * as XLSX from 'xlsx';
+    import jsPDF from 'jspdf';
+    import autoTable from 'jspdf-autotable';
 
     const translations = {
       en: {
@@ -154,6 +161,7 @@
         device: 'Device',
         hours: 'Hours',
         export: 'Export Excel',
+        exportPdf: 'Export PDF',
         meta: (devices, date) => `${devices} devices · ${date}`,
       },
       pt: {
@@ -162,6 +170,7 @@
         device: 'Dispositivo',
         hours: 'Horas',
         export: 'Exportar Excel',
+        exportPdf: 'Exportar PDF',
         meta: (devices, date) => `${devices} dispositivos · ${date}`,
       },
       es: {
@@ -170,6 +179,7 @@
         device: 'Dispositivo',
         hours: 'Horas',
         export: 'Exportar Excel',
+        exportPdf: 'Exportar PDF',
         meta: (devices, date) => `${devices} dispositivos · ${date}`,
       },
       fr: {
@@ -178,6 +188,7 @@
         device: 'Appareil',
         hours: 'Heures',
         export: 'Exporter Excel',
+        exportPdf: 'Exporter PDF',
         meta: (devices, date) => `${devices} appareils · ${date}`,
       },
     };
@@ -213,6 +224,7 @@
     const reportMeta = document.getElementById('report-meta');
     const reportBody = document.getElementById('report-body');
     const btnExport = document.getElementById('btn-export');
+    const btnExportPdf = document.getElementById('btn-export-pdf');
 
     let exportData = [];
 
@@ -224,6 +236,20 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, t.title);
       XLSX.writeFile(wb, 'hours-report.xlsx');
+    });
+
+    btnExportPdf.addEventListener('click', () => {
+      const t = translations[currentLang];
+      const doc = new jsPDF();
+      doc.setFontSize(14);
+      doc.text(t.title, 14, 16);
+      autoTable(doc, {
+        startY: 22,
+        head: [[t.device, t.hours]],
+        body: exportData.map(r => [r.name, r.hours ?? '—']),
+        columnStyles: { 1: { halign: 'right' } },
+      });
+      doc.save('hours-report.pdf');
     });
 
     function showError(msg) {

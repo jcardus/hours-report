@@ -6,9 +6,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hours Report</title>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
   <style is:global>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -225,8 +222,9 @@
 
     let exportData = [];
 
-    btnExport.addEventListener('click', () => {
+    btnExport.addEventListener('click', async () => {
       const t = translations[currentLang];
+      const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs');
       const ws = XLSX.utils.json_to_sheet(
         exportData.map(r => ({ [t.device]: r.name, [t.hours]: r.hours }))
       );
@@ -235,13 +233,14 @@
       XLSX.writeFile(wb, 'hours-report.xlsx');
     });
 
-    btnExportPdf.addEventListener('click', () => {
+    btnExportPdf.addEventListener('click', async () => {
       const t = translations[currentLang];
-      const { jsPDF } = window.jspdf;
+      const { default: jsPDF } = await import('https://esm.sh/jspdf@2.5.1');
+      const { default: autoTable } = await import('https://esm.sh/jspdf-autotable@3.8.4');
       const doc = new jsPDF();
       doc.setFontSize(14);
       doc.text(t.title, 14, 16);
-      doc.autoTable({
+      autoTable(doc, {
         startY: 22,
         head: [[t.device, t.hours]],
         body: exportData.map(r => [r.name, r.hours ?? '—']),

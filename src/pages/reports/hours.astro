@@ -6,7 +6,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hours Report</title>
-  <style is:global>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.4/jspdf.plugin.autotable.min.js"></script>
+  <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -149,11 +152,7 @@
     </div>
   </div>
 
-  <script>
-    import * as XLSX from 'xlsx';
-    import jsPDF from 'jspdf';
-    import autoTable from 'jspdf-autotable';
-
+  <script is:inline>
     const translations = {
       en: {
         title: 'Hours Report',
@@ -216,8 +215,6 @@
 
     applyLang(currentLang);
 
-    // --- data ---
-
     const statusCard = document.getElementById('status-card');
     const errorEl = document.getElementById('error');
     const reportEl = document.getElementById('report');
@@ -240,10 +237,11 @@
 
     btnExportPdf.addEventListener('click', () => {
       const t = translations[currentLang];
+      const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       doc.setFontSize(14);
       doc.text(t.title, 14, 16);
-      autoTable(doc, {
+      doc.autoTable({
         startY: 22,
         head: [[t.device, t.hours]],
         body: exportData.map(r => [r.name, r.hours ?? '—']),

@@ -1,0 +1,171 @@
+---
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hours Report</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f1f3f5;
+      color: #212529;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    h1 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+      padding: 1.25rem 1.5rem;
+    }
+
+    #status { color: #6c757d; font-size: 0.9rem; }
+
+    #error {
+      display: none;
+      background: #fff5f5;
+      border: 1px solid #ffc9c9;
+      color: #c92a2a;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+
+    #report { display: none; }
+
+    .report-meta { font-size: 0.85rem; color: #6c757d; margin-bottom: 1rem; }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    th {
+      background: #343a40;
+      color: #fff;
+      text-align: left;
+      padding: 0.7rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    th:last-child, td:last-child { text-align: right; }
+
+    td { padding: 0.6rem 1rem; border-bottom: 1px solid #dee2e6; font-size: 0.9rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f8f9fa; }
+
+    .hours-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .no-hours { color: #adb5bd; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Hours Report</h1>
+
+    <div id="error"></div>
+
+    <div class="card" id="status-card">
+      <p id="status">Loading…</p>
+    </div>
+
+    <div id="report" class="card">
+      <p class="report-meta" id="report-meta"></p>
+      <table>
+        <thead>
+          <tr>
+            <th>Device</th>
+            <th>Positions</th>
+            <th>Hours</th>
+          </tr>
+        </thead>
+        <tbody id="report-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const statusCard = document.getElementById('status-card');
+    const statusEl = document.getElementById('status');
+    const errorEl = document.getElementById('error');
+    const reportEl = document.getElementById('report');
+    const reportMeta = document.getElementById('report-meta');
+    const reportBody = document.getElementById('report-body');
+
+    function showError(msg) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+      statusCard.style.display = 'none';
+    }
+
+    function formatHours(raw) {
+      if (raw == null) return null;
+      const h = Number(raw);
+      if (isNaN(h)) return String(raw);
+      const hrs = Math.floor(h);
+      const mins = Math.round((h - hrs) * 60);
+      return `${hrs}h ${String(mins).padStart(2, '0')}m`;
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    async function load() {
+      try {
+        const [devices, positions] = await Promise.all([
+          fetch('/api/devices').then(r => { if (!r.ok) throw new Error(`/api/devices returned ${r.status}`); return r.json(); }),
+          fetch('/api/positions').then(r => { if (!r.ok) throw new Error(`/api/positions returned ${r.status}`); return r.json(); }),
+        ]);
+
+        const deviceMap = Object.fromEntries(devices.map(d => [d.id, d.name || String(d.id)]));
+
+        const byDevice = {};
+        for (const pos of positions) {
+          const id = pos.deviceId;
+          if (!byDevice[id]) byDevice[id] = { name: deviceMap[id] ?? String(id), positions: [] };
+          byDevice[id].positions.push(pos);
+        }
+
+        const rows = Object.values(byDevice).sort((a, b) => a.name.localeCompare(b.name));
+
+        reportBody.innerHTML = rows.map(({ name, positions }) => {
+          const hoursValues = positions
+            .map(p => p.attributes?.hours)
+            .filter(v => v != null)
+            .map(Number)
+            .filter(v => !isNaN(v));
+
+          const maxHours = hoursValues.length ? Math.max(...hoursValues) : null;
+          const hoursStr = formatHours(maxHours);
+
+          return `<tr>
+            <td>${escHtml(name)}</td>
+            <td>${positions.length}</td>
+            <td class="hours-cell">${hoursStr != null ? escHtml(hoursStr) : '<span class="no-hours">—</span>'}</td>
+          </tr>`;
+        }).join('');
+
+        reportMeta.textContent = `${positions.length} positions · ${rows.length} devices · ${new Date().toLocaleString()}`;
+        statusCard.style.display = 'none';
+        reportEl.style.display = 'block';
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    load();
+  </script>
+</body>
+</html>

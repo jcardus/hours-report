@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   output: 'static',
   build: {
-    assets: 'reports/hours/_astro',
+    assets: 'reports/hours',
   },
   vite: {
     server: {

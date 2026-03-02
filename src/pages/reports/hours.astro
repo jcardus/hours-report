@@ -6,7 +6,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Hours Report</title>
-  <style>
+  <style is:global>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -79,13 +79,13 @@
       font-weight: 600;
     }
 
-    th:last-child, td:last-child { text-align: right; }
+    th:last-child { text-align: right; }
 
     td { padding: 0.6rem 1rem; border-bottom: 1px solid #dee2e6; font-size: 0.9rem; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8f9fa; }
 
-    .hours-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .hours-cell { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
     .no-hours { color: #adb5bd; }
   </style>
 </head>
